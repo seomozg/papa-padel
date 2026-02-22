@@ -63,13 +63,6 @@
     "query": "падел корт"
   },
   {
-    "place_id": "ChIJ1yLa9eZKtUYR3Ybz6OsQXjg",
-    "name": "ФЕДЕРАЦИЯ ПАДЕЛ РУС",
-    "formatted_address": "Дубининская ул., 69, Москва, Россия, 115054",
-    "city": "Москва",
-    "query": "падел"
-  },
-  {
     "place_id": "ChIJjeAAlZQxlkYRtgojhuOircw",
     "name": "GAZPADEL",
     "formatted_address": "Газовая ул., 10, Санкт-Петербург, Россия, 197110",
@@ -154,17 +147,17 @@
     "query": "padel court"
   },
   {
+    "place_id": "ChIJwfy0DNWh4EMRFtMxSdMZukE",
+    "name": "PADEL NF l Падел клуб",
+    "formatted_address": "Техснабовская ул., 10к1, Нефтекамск, Респ. Башкортостан, Россия, 452697",
+    "city": "Тверь",
+    "query": "падел клуб"
+  },
+  {
     "place_id": "ChIJvfaCPznxVDARQ0kZ7ffYAPs",
     "name": "Padel Samui",
     "formatted_address": "30/20 Tambon Bo Put, Plai Laem Chang Wat Surat Thani 84320, Таиланд",
     "city": "Ставрополь",
-    "query": "падел клуб"
-  },
-  {
-    "place_id": "ChIJwfy0DNWh4EMRFtMxSdMZukE",
-    "name": "PADEL NF l Падел клуб",
-    "formatted_address": "Техснабовская ул., 10к1, Нефтекамск, Респ. Башкортостан, Россия, 452697",
-    "city": "Горно-Алтайск",
     "query": "падел клуб"
   }
 ]

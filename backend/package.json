@@ -12,7 +12,8 @@
     "scrape:news": "ts-node scripts/scrape-news.ts",
     "scrape:all": "ts-node scripts/scrape-courts.ts && ts-node scripts/scrape-news.ts",
     "clean:articles": "ts-node scripts/clean-articles.ts",
-    "enrich:courts": "ts-node scripts/enrich-courts.ts"
+    "enrich:courts": "ts-node scripts/enrich-courts.ts",
+    "enrich:courts:ai": "ts-node scripts/enrich-courts-perplexity.ts"
   },
   "keywords": [],
   "author": "",

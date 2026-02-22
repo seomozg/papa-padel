@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  reviews   Review[]
+  likes     Like[]
+
+  @@map("users")
+}
+
+model Court {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  city         String
+  address      String
+  coordinates  Json     // { lat: number, lng: number }
+  type         String   // indoor | outdoor | mixed
+  amenities    Json     // string[]
+  phone        String?
+  workingHours String?
+  description  String?
+  prices       Json     // { time: string, weekday: number, weekend: number }[]
+  image        String?
+  rating       Float    @default(0)
+  reviewCount  Int      @default(0)
+  likes        Int      @default(0)
+  courtsCount  Int      @default(1)
+  tags         Json?    // string[]
+  source       String?  // Источник данных (google-places, demo-data, etc.)
+  sourceUrl    String?  // URL источника данных о корте
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  reviews      Review[]
+
+  // Indexes
+  @@index([city])
+  @@index([type])
+  @@index([rating])
+  @@index([slug])
+  @@index([sourceUrl])
+  @@map("courts")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  courtId    String
+  userId     String?
+  authorName String?
+  rating     Int
+  text       String
+  date       DateTime @default(now())
+  likes      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  court      Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([courtId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  userId     String
+  targetType String   // "court" | "review"
+  targetId   String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([userId])
+  @@index([targetType, targetId])
+  @@unique([userId, targetType, targetId])
+  @@map("likes")
+}
+
+model Article {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  excerpt   String
+  content   String
+  image     String?
+  category  String
+  readTime  Int
+  author    String
+  published Boolean  @default(true)
+  sourceUrl String?  // URL источника новости
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes
+  @@index([slug])
+  @@index([published])
+  @@index([category])
+  @@index([sourceUrl])
+  @@map("articles")
+}

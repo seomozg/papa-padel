@@ -52,7 +52,13 @@ async function translateWithDeepSeek(text: string, targetLang: string = 'ru'): P
         messages: [
           {
             role: 'system',
-            content: `Ты профессиональный переводчик. Переведи текст на русский язык. Сохрани стиль и смысл оригинала. Если текст уже на русском - верни его без изменений.`,
+            content: `Ты профессиональный переводчик и редактор. Твоя задача:
+1. Перевести текст на русский язык (если он не на русском)
+2. Удалить весь мусор: навигацию, подписки, соцсети, GTM коды, iframe, "next article", "Latest news", "FOLLOW", "Share", и т.п.
+3. Оставить только основной содержательный контент статьи
+4. Сохранить стиль и смысл оригинала
+
+Верни только чистый перевод статьи без лишних элементов.`,
           },
           {
             role: 'user',
@@ -179,6 +185,33 @@ async function parseRSSFeed(feedUrl: string): Promise<any[]> {
   }
 }
 
+// Очистка текста от мусора
+function cleanContent(text: string): string {
+  return text
+    // Удаляем iframe, script, style и их содержимое
+    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Удаляем HTML теги
+    .replace(/<[^>]+>/g, ' ')
+    // Удаляем GTM и аналитику
+    .replace(/googletagmanager\.com[\s\S]*?\/iframe>/gi, '')
+    .replace(/GTM-[A-Z0-9]+/gi, '')
+    // Удаляем типичный мусор
+    .replace(/FOLLOW PADELALTO:/gi, '')
+    .replace(/next article/gi, '')
+    .replace(/Latest news/gi, '')
+    .replace(/Previous article/gi, '')
+    .replace(/Related articles/gi, '')
+    .replace(/Share this:/gi, '')
+    .replace(/Click to share/gi, '')
+    .replace(/Twitter|Facebook|Instagram|YouTube/gi, '')
+    // Удаляем лишние пробелы и переносы
+    .replace(/\s+/g, ' ')
+    .replace(/\n\s*\n/g, '\n')
+    .trim();
+}
+
 // Получение полного контента статьи
 async function getArticleContent(url: string): Promise<string> {
   try {
@@ -191,27 +224,47 @@ async function getArticleContent(url: string): Promise<string> {
 
     const $ = cheerio.load(response.data);
     
-    // Удаляем ненужные элементы
-    $('script, style, nav, header, footer, aside, .ads, .comments').remove();
+    // Удаляем ненужные элементы ДО извлечения текста
+    $('script, style, nav, header, footer, aside, iframe, .ads, .comments, .sidebar, .widget, .related, .share, .social, .navigation, .menu, .breadcrumb, .author-box, .newsletter, .popup, .modal').remove();
+    $('[class*="sidebar"]').remove();
+    $('[class*="widget"]').remove();
+    $('[class*="related"]').remove();
+    $('[class*="share"]').remove();
+    $('[class*="social"]').remove();
+    $('[class*="footer"]').remove();
+    $('[class*="header"]').remove();
+    $('[class*="nav"]').remove();
+    $('[class*="menu"]').remove();
     
     // Ищем основной контент
     const contentSelectors = [
-      'article',
+      'article .entry-content',
+      'article .post-content',
+      'article .article-content',
       '.post-content',
       '.article-content',
       '.entry-content',
-      '.content',
+      'article',
+      '.content article',
+      'main article',
       'main',
     ];
     
     for (const selector of contentSelectors) {
-      const content = $(selector).text();
-      if (content && content.length > 200) {
-        return content.trim().substring(0, 5000);
+      const element = $(selector);
+      if (element.length) {
+        // Дополнительно чистим внутри найденного элемента
+        element.find('script, style, iframe, .ads, .comments, .sidebar, .widget, .related, .share, .social, nav, footer, header').remove();
+        const content = element.text();
+        if (content && content.length > 200) {
+          return cleanContent(content).substring(0, 5000);
+        }
       }
     }
     
-    return $('body').text().trim().substring(0, 5000);
+    // Fallback - берем body и чистим
+    $('body script, body style, body iframe, body nav, body footer, body header').remove();
+    return cleanContent($('body').text()).substring(0, 5000);
   } catch (error) {
     return '';
   }

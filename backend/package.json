@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "scrape:courts": "ts-node scripts/scrape-courts.ts",
     "scrape:news": "ts-node scripts/scrape-news.ts",
-    "scrape:all": "ts-node scripts/scrape-courts.ts && ts-node scripts/scrape-news.ts"
+    "scrape:all": "ts-node scripts/scrape-courts.ts && ts-node scripts/scrape-news.ts",
+    "clean:articles": "ts-node scripts/clean-articles.ts"
   },
   "keywords": [],
   "author": "",

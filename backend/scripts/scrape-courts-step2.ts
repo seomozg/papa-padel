@@ -14,14 +14,19 @@ interface PlaceResult {
   query: string;
 }
 
-// Генерация slug
-function generateSlug(name: string): string {
-  return name
+// Генерация уникального slug
+function generateSlug(name: string, placeId: string): string {
+  const baseSlug = name
     .toLowerCase()
     .replace(/[^a-zа-яё0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .trim();
+    .trim()
+    .substring(0, 50);
+  
+  // Добавляем последние 8 символов place_id для уникальности
+  const uniqueSuffix = placeId.substring(placeId.length - 8);
+  return `${baseSlug}-${uniqueSuffix}`;
 }
 
 // Скачивание изображения
@@ -162,7 +167,7 @@ async function fetchAllDetails() {
     if (details.photos && details.photos.length > 0) {
       const photoRef = details.photos[0].photo_reference;
       const photoUrl = await getPhotoUrl(photoRef);
-      const filename = `${generateSlug(place.name)}_${Date.now()}.jpg`;
+      const filename = `${generateSlug(place.name, place.place_id)}_${Date.now()}.jpg`;
       const downloaded = await downloadImage(photoUrl, filename);
       if (downloaded) {
         image = downloaded;
@@ -176,7 +181,7 @@ async function fetchAllDetails() {
     ];
 
     const courtData = {
-      slug: generateSlug(place.name),
+      slug: generateSlug(place.name, place.place_id),
       name: place.name,
       city: place.city,
       address: details.formatted_address || place.formatted_address || `${place.city}, адрес не указан`,

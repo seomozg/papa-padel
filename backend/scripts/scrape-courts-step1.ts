@@ -142,10 +142,26 @@ async function searchCourtsGoogle(query: string, city: string, nextPageToken?: s
   }
 }
 
-// Проверка, что это падел-корт
-function isPadelPlace(name: string): boolean {
+// Проверка, что это может быть падел-корт (широкий фильтр)
+function isPossiblePadelPlace(name: string, types?: string[]): boolean {
   const nameLower = name.toLowerCase();
-  return nameLower.includes('padel') || nameLower.includes('падел');
+  
+  // Прямое упоминание падела
+  if (nameLower.includes('padel') || nameLower.includes('падел')) {
+    return true;
+  }
+  
+  // Теннисные клубы и спорткомплексы
+  if (nameLower.includes('теннис') || nameLower.includes('tennis')) {
+    return true;
+  }
+  
+  // Спортивные объекты
+  if (types && (types.includes('gym') || types.includes('stadium') || types.includes('establishment'))) {
+    return true;
+  }
+  
+  return false;
 }
 
 // Извлечение города из адреса
@@ -187,8 +203,8 @@ async function collectAllPlaceIds() {
           // Проверяем дубликаты
           if (seenPlaceIds.has(place.place_id)) continue;
           
-          // Проверяем, что это падел
-          if (!isPadelPlace(place.name)) continue;
+          // Проверяем, что это может быть падел-корт (широкий фильтр)
+          if (!isPossiblePadelPlace(place.name, place.types)) continue;
           
           seenPlaceIds.add(place.place_id);
           

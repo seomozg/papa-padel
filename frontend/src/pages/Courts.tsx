@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Search, SlidersHorizontal, MapPin, X, Loader2 } from "lucide-react";
-import { CITIES } from "@/data/mockData";
 import { api, Court } from "@/lib/api";
 import CourtCard from "@/components/CourtCard";
 import Footer from "@/components/Footer";
@@ -22,20 +20,41 @@ const SORT_OPTIONS = [
 
 export default function Courts() {
   const [courts, setCourts] = useState<Court[]>([]);
+  const [allCourts, setAllCourts] = useState<Court[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [city, setCity] = useState("Все города");
+  const [city, setCity] = useState("");
   const [type, setType] = useState("");
   const [sort, setSort] = useState("rating");
   const [showFilters, setShowFilters] = useState(false);
+
+  // Load all courts once for cities list
+  useEffect(() => {
+    const loadAllCourts = async () => {
+      try {
+        const data = await api.getCourts({});
+        setAllCourts(data);
+      } catch (err) {
+        console.error('Failed to load courts for cities:', err);
+      }
+    };
+    loadAllCourts();
+  }, []);
+
+  // Get unique cities from courts
+  const cities = [...new Set(allCourts.map(c => c.city))].sort();
+  const citiesWithCount = cities.map(cityName => ({
+    name: cityName,
+    count: allCourts.filter(c => c.city === cityName).length
+  }));
 
   const loadCourts = async () => {
     try {
       setLoading(true);
       setError(null);
       const params = {
-        city: city === "Все города" ? undefined : city,
+        city: city || undefined,
         type: type || undefined,
         sort: sort || undefined,
         search: search || undefined,
@@ -53,7 +72,7 @@ export default function Courts() {
     loadCourts();
   }, [city, type, sort, search]);
 
-  const hasFilters = city !== "Все города" || type !== "" || search !== "";
+  const hasFilters = city !== "" || type !== "" || search !== "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,8 +127,9 @@ export default function Courts() {
                     onChange={(e) => setCity(e.target.value)}
                     className="bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary min-w-[160px] rounded-lg [&>option]:bg-background [&>option]:text-foreground [&>option]:rounded-lg"
                   >
-                    {CITIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                    <option value="">Все города</option>
+                    {citiesWithCount.map((c) => (
+                      <option key={c.name} value={c.name}>{c.name} ({c.count})</option>
                     ))}
                   </select>
                 </div>
@@ -145,7 +165,7 @@ export default function Courts() {
                 {hasFilters && (
                   <div className="flex flex-col justify-end">
                     <button
-                      onClick={() => { setCity("Все города"); setType(""); setSearch(""); }}
+                      onClick={() => { setCity(""); setType(""); setSearch(""); }}
                       className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-destructive transition-colors px-3 py-2"
                     >
                       <X size={14} /> Сбросить
@@ -159,18 +179,28 @@ export default function Courts() {
           {/* City chips */}
           <div className="container mx-auto px-4 pb-4">
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-              {CITIES.map((c) => (
+              <button
+                onClick={() => setCity("")}
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                  city === ""
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                Все города
+              </button>
+              {citiesWithCount.map((c) => (
                 <button
-                  key={c}
-                  onClick={() => setCity(c)}
+                  key={c.name}
+                  onClick={() => setCity(c.name)}
                   className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
-                    city === c
+                    city === c.name
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
-                  {c !== "Все города" && <MapPin size={12} />}
-                  {c}
+                  <MapPin size={12} />
+                  {c.name}
                 </button>
               ))}
             </div>

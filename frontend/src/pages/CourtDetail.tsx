@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { MapPin, Star, Heart, Phone, Clock, ArrowLeft, Navigation2, Check, ChevronDown, ChevronUp, Loader2, Send } from "lucide-react";
 import { api, Court } from "@/lib/api";
 import Footer from "@/components/Footer";
+import YandexMap from "@/components/YandexMap";
 
 const TYPE_LABELS: Record<string, string> = {
   indoor: "Крытый",
@@ -408,24 +409,15 @@ export default function CourtDetail() {
                 </a>
               </div>
 
-              {/* Map placeholder */}
+              {/* Map */}
               <div className="p-5 bg-card rounded-xl border border-border">
                 <h3 className="font-semibold text-sm mb-3">На карте</h3>
-                <div className="aspect-square rounded-lg bg-muted flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-10">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="border-b border-foreground" style={{ height: "12.5%" }} />
-                    ))}
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <div key={i} className="absolute top-0 bottom-0 border-r border-foreground" style={{ left: `${i * 12.5}%` }} />
-                    ))}
-                  </div>
-                  <div className="relative text-center">
-                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
-                      <MapPin size={16} className="text-primary-foreground" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">{court.name}</p>
-                  </div>
+                <div className="rounded-lg overflow-hidden">
+                  <YandexMap
+                    courts={[court]}
+                    center={court.coordinates ? [court.coordinates.lat, court.coordinates.lng] : undefined}
+                    zoom={15}
+                  />
                 </div>
                 <Link
                   to="/map"

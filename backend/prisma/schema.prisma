@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,10 +15,8 @@ model User {
   avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Relations
-  reviews   Review[]
   likes     Like[]
+  reviews   Review[]
 
   @@map("users")
 }
@@ -32,28 +27,25 @@ model Court {
   name         String
   city         String
   address      String
-  coordinates  Json     // { lat: number, lng: number }
-  type         String   // indoor | outdoor | mixed
-  amenities    Json     // string[]
+  coordinates  Json
+  type         String
+  amenities    Json
   phone        String?
   workingHours String?
   description  String?
-  prices       Json     // { time: string, weekday: number, weekend: number }[]
+  prices       Json
   image        String?
   rating       Float    @default(0)
   reviewCount  Int      @default(0)
   likes        Int      @default(0)
   courtsCount  Int      @default(1)
-  tags         Json?    // string[]
-  source       String?  // Источник данных (google-places, demo-data, etc.)
-  sourceUrl    String?  // URL источника данных о корте
+  tags         Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  // Relations
+  sourceUrl    String?
+  source       String?
   reviews      Review[]
 
-  // Indexes
   @@index([city])
   @@index([type])
   @@index([rating])
@@ -73,10 +65,8 @@ model Review {
   likes      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-
-  // Relations
-  court      Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  court      Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
 
   @@index([courtId])
   @@index([userId])
@@ -86,17 +76,14 @@ model Review {
 model Like {
   id         String   @id @default(cuid())
   userId     String
-  targetType String   // "court" | "review"
+  targetType String
   targetId   String
   createdAt  DateTime @default(now())
-
-  // Relations
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Indexes
+  @@unique([userId, targetType, targetId])
   @@index([userId])
   @@index([targetType, targetId])
-  @@unique([userId, targetType, targetId])
   @@map("likes")
 }
 
@@ -111,11 +98,10 @@ model Article {
   readTime  Int
   author    String
   published Boolean  @default(true)
-  sourceUrl String?  // URL источника новости
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sourceUrl String?
 
-  // Indexes
   @@index([slug])
   @@index([published])
   @@index([category])

@@ -220,12 +220,11 @@ export default function Admin() {
   const handleDeleteCourt = async (id: string) => {
     if (confirm('Вы уверены, что хотите удалить этот корт?')) {
       try {
-        // TODO: Add delete court API endpoint
-        console.log('Delete court not implemented yet');
-        // await api.deleteCourt(id);
-        // await loadData();
+        await api.deleteCourt(id);
+        await loadData();
       } catch (error) {
         console.error('Failed to delete court:', error);
+        alert('Ошибка при удалении корта');
       }
     }
   };

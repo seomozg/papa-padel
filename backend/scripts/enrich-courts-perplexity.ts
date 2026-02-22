@@ -28,18 +28,20 @@ async function searchCourtInfo(courtName: string, city: string): Promise<any> {
             content: `Найди информацию о падел-клубе "${courtName}" в городе ${city}, Россия.
 
 Мне нужны следующие данные:
-1. prices - массив с ценами на аренду корта в рублях. Формат: [{ time: "时间段", weekday: цена_будни, weekend: цена_выходные }]
+1. prices - массив с ценами на аренду корта в рублях. Формат: [{ time: "время", weekday: цена_будни, weekend: цена_выходные }]
    Типичные временные слоты: "07:00-12:00", "12:00-17:00", "17:00-23:00"
 2. amenities - массив удобств клуба. Возможные: "Парковка", "Душевые", "Прокат ракеток", "Кафе", "Инструктор", "Wi-Fi", "Магазин", "Раздевалка", "Сауна", "Бассейн"
 3. description - описание клуба (2-3 предложения на русском)
 4. courtsCount - количество кортов (число)
+5. type - тип корта: "indoor" (крытый), "outdoor" (открытый) или "mixed" (смешанный - есть и крытые и открытые корты)
 
 Верни ТОЛЬКО валидный JSON без markdown и объяснений:
 {
   "prices": [...],
   "amenities": [...],
   "description": "...",
-  "courtsCount": число
+  "courtsCount": число,
+  "type": "indoor|outdoor|mixed"
 }`,
           },
         ],
@@ -117,6 +119,10 @@ async function main() {
     
     if (data.courtsCount && typeof data.courtsCount === 'number') {
       updateData.courtsCount = data.courtsCount;
+    }
+
+    if (data.type && ['indoor', 'outdoor', 'mixed'].includes(data.type)) {
+      updateData.type = data.type;
     }
 
     if (Object.keys(updateData).length > 0) {

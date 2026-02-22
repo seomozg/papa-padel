@@ -13,7 +13,8 @@
     "scrape:all": "ts-node scripts/scrape-courts.ts && ts-node scripts/scrape-news.ts",
     "clean:articles": "ts-node scripts/clean-articles.ts",
     "enrich:courts": "ts-node scripts/enrich-courts.ts",
-    "enrich:courts:ai": "ts-node scripts/enrich-courts-perplexity.ts"
+    "enrich:courts:ai": "ts-node scripts/enrich-courts-perplexity.ts",
+    "enrich:court-types": "ts-node scripts/enrich-court-types.ts"
   },
   "keywords": [],
   "author": "",

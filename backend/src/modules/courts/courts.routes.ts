@@ -27,14 +27,10 @@ router.get('/', cacheMiddleware(600), async (req, res) => { // Кэш на 10 м
     let orderBy: any = {};
     if (sort === 'rating') {
       orderBy.rating = 'desc';
-    } else if (sort === 'price_asc') {
-      // For now, sort by rating as placeholder
-      orderBy.rating = 'asc';
-    } else if (sort === 'price_desc') {
-      orderBy.rating = 'desc';
     } else if (sort === 'reviews') {
       orderBy.reviewCount = 'desc';
     }
+    // Price sorting is done in-memory after fetching
 
     const courts = await prisma.court.findMany({
       where,
@@ -42,26 +38,29 @@ router.get('/', cacheMiddleware(600), async (req, res) => { // Кэш на 10 м
     });
 
     // Transform JSON fields to proper types
-    const transformedCourts = courts.map(court => {
-      try {
-        return {
-          ...court,
-          coordinates: court.coordinates ? JSON.parse(court.coordinates as string) : null,
-          amenities: court.amenities ? JSON.parse(court.amenities as string) : [],
-          prices: court.prices ? JSON.parse(court.prices as string) : [],
-          tags: court.tags ? JSON.parse(court.tags as string) : []
-        };
-      } catch (error) {
-        console.error(`Error parsing JSON for court ${court.id}:`, error);
-        return {
-          ...court,
-          coordinates: null,
-          amenities: [],
-          prices: [],
-          tags: []
-        };
-      }
+    let transformedCourts = courts.map(court => {
+      return {
+        ...court,
+        coordinates: typeof court.coordinates === 'string' ? JSON.parse(court.coordinates) : court.coordinates,
+        amenities: typeof court.amenities === 'string' ? JSON.parse(court.amenities) : court.amenities || [],
+        prices: typeof court.prices === 'string' ? JSON.parse(court.prices) : court.prices || [],
+        tags: typeof court.tags === 'string' ? JSON.parse(court.tags) : court.tags || []
+      };
     });
+
+    // Sort by price (in-memory since price is in JSON field)
+    if (sort === 'price_asc' || sort === 'price_desc') {
+      const getPrice = (court: any) => {
+        if (!court.prices || court.prices.length === 0) return Infinity;
+        return Math.min(...court.prices.map((p: any) => Math.min(p.weekday || Infinity, p.weekend || Infinity)));
+      };
+      
+      transformedCourts.sort((a, b) => {
+        const priceA = getPrice(a);
+        const priceB = getPrice(b);
+        return sort === 'price_asc' ? priceA - priceB : priceB - priceA;
+      });
+    }
 
     res.json(transformedCourts);
   } catch (error) {
@@ -93,25 +92,13 @@ router.get('/:slug', async (req, res) => {
     }
 
     // Transform JSON fields to proper types
-    let transformedCourt;
-    try {
-      transformedCourt = {
-        ...court,
-        coordinates: court.coordinates ? JSON.parse(court.coordinates as string) : null,
-        amenities: court.amenities ? JSON.parse(court.amenities as string) : [],
-        prices: court.prices ? JSON.parse(court.prices as string) : [],
-        tags: court.tags ? JSON.parse(court.tags as string) : []
-      };
-    } catch (error) {
-      console.error(`Error parsing JSON for court ${court.id}:`, error);
-      transformedCourt = {
-        ...court,
-        coordinates: null,
-        amenities: [],
-        prices: [],
-        tags: []
-      };
-    }
+    const transformedCourt = {
+      ...court,
+      coordinates: typeof court.coordinates === 'string' ? JSON.parse(court.coordinates) : court.coordinates,
+      amenities: typeof court.amenities === 'string' ? JSON.parse(court.amenities) : court.amenities || [],
+      prices: typeof court.prices === 'string' ? JSON.parse(court.prices) : court.prices || [],
+      tags: typeof court.tags === 'string' ? JSON.parse(court.tags) : court.tags || []
+    };
 
     res.json(transformedCourt);
   } catch (error) {

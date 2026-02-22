@@ -1,19 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Search, MapPin, ArrowRight, Star, Zap, Shield, Users, Loader2 } from "lucide-react";
-import { CITIES } from "@/data/mockData";
+import { Search, MapPin, ArrowRight, Star, Users, Loader2 } from "lucide-react";
 import { api, Court, Article } from "@/lib/api";
 import CourtCard from "@/components/CourtCard";
 import NewsCard from "@/components/NewsCard";
 import Footer from "@/components/Footer";
 import heroPadel from "@/assets/hero-padel.jpg";
-
-const STATS = [
-  { icon: MapPin, value: "50+", label: "городов" },
-  { icon: Star, value: "300+", label: "кортов" },
-  { icon: Users, value: "10 000+", label: "игроков" },
-  { icon: Zap, value: "24/7", label: "доступность" },
-];
 
 const FEATURES = [
   {
@@ -64,6 +56,16 @@ export default function Index() {
     loadData();
   }, []);
 
+  // Динамические данные из БД
+  const cities = [...new Set(courts.map(c => c.city))];
+  const citiesWithCount = cities.map(city => ({
+    name: city,
+    count: courts.filter(c => c.city === city).length
+  })).sort((a, b) => b.count - a.count);
+
+  const totalCourts = courts.length;
+  const totalCities = cities.length;
+
   const topCourts = courts.sort((a, b) => b.rating - a.rating).slice(0, 6);
   const latestNews = articles.slice(0, 3);
 
@@ -90,7 +92,7 @@ export default function Index() {
         <div className="relative container mx-auto px-4 py-24">
           <div className="max-w-2xl animate-fade-up">
             <div className="badge-sport inline-flex mb-6 text-sm">
-              🎾 Крупнейший каталог падела в России
+              🎾 Каталог падела в России
             </div>
             <h1 className="font-display font-bold text-5xl md:text-6xl lg:text-7xl text-white leading-tight mb-6">
               Найди свой
@@ -99,7 +101,7 @@ export default function Index() {
               </span>
             </h1>
             <p className="text-white/80 text-xl leading-relaxed mb-10 animate-fade-up-delay-1">
-              Более 300 кортов по всей России. Ищи, сравнивай, играй.
+              {totalCourts} кортов в {totalCities} городах России. Ищи, сравнивай, играй.
             </p>
 
             {/* Search bar */}
@@ -123,8 +125,9 @@ export default function Index() {
                     onChange={(e) => setSelectedCity(e.target.value)}
                     className="pl-9 pr-8 py-3 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all appearance-none min-w-[160px] rounded-lg [&>option]:bg-background [&>option]:text-foreground [&>option]:rounded-lg"
                   >
-                    {CITIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
+                    <option value="">Все города</option>
+                    {citiesWithCount.map((c) => (
+                      <option key={c.name} value={c.name}>{c.name} ({c.count})</option>
                     ))}
                   </select>
                 </div>
@@ -143,18 +146,34 @@ export default function Index() {
         {/* Stats bar */}
         <div className="absolute bottom-0 left-0 right-0 bg-card/90 backdrop-blur-md border-t border-border animate-fade-up-delay-3">
           <div className="container mx-auto px-4 py-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {STATS.map(({ icon: Icon, value, label }) => (
-                <div key={label} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-muted rounded-lg flex items-center justify-center">
-                    <Icon size={18} className="text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-display font-bold text-lg leading-tight">{value}</div>
-                    <div className="text-xs text-muted-foreground">{label}</div>
-                  </div>
+            <div className="grid grid-cols-3 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-muted rounded-lg flex items-center justify-center">
+                  <MapPin size={18} className="text-primary" />
                 </div>
-              ))}
+                <div>
+                  <div className="font-display font-bold text-lg leading-tight">{totalCities}</div>
+                  <div className="text-xs text-muted-foreground">городов</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-muted rounded-lg flex items-center justify-center">
+                  <Star size={18} className="text-primary" />
+                </div>
+                <div>
+                  <div className="font-display font-bold text-lg leading-tight">{totalCourts}</div>
+                  <div className="text-xs text-muted-foreground">кортов</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-muted rounded-lg flex items-center justify-center">
+                  <Users size={18} className="text-primary" />
+                </div>
+                <div>
+                  <div className="font-display font-bold text-lg leading-tight">{courts.reduce((sum, c) => sum + c.courtsCount, 0)}</div>
+                  <div className="text-xs text-muted-foreground">площадок</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -232,23 +251,20 @@ export default function Index() {
             <h2 className="font-display font-bold text-3xl md:text-4xl">Корты по городам</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {CITIES.filter((c) => c !== "Все города").map((city, i) => {
-              const count = courts.filter((c2) => c2.city === city).length;
-              return (
-                <Link
-                  key={city}
-                  to={`/courts?city=${city}`}
-                  className="group p-4 bg-card rounded-xl border border-border hover:border-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 text-center animate-fade-up"
-                  style={{ animationDelay: `${i * 0.07}s` }}
-                >
-                  <MapPin size={20} className="mx-auto mb-2 text-primary group-hover:text-primary-foreground" />
-                  <div className="font-semibold text-sm">{city}</div>
-                  <div className="text-xs text-muted-foreground group-hover:text-primary-foreground/70 mt-0.5">
-                    {count} {count === 1 ? "корт" : count < 5 ? "корта" : "кортов"}
-                  </div>
-                </Link>
-              );
-            })}
+            {citiesWithCount.map((city, i) => (
+              <Link
+                key={city.name}
+                to={`/courts?city=${encodeURIComponent(city.name)}`}
+                className="group p-4 bg-card rounded-xl border border-border hover:border-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 text-center animate-fade-up"
+                style={{ animationDelay: `${i * 0.07}s` }}
+              >
+                <MapPin size={20} className="mx-auto mb-2 text-primary group-hover:text-primary-foreground" />
+                <div className="font-semibold text-sm">{city.name}</div>
+                <div className="text-xs text-muted-foreground group-hover:text-primary-foreground/70 mt-0.5">
+                  {city.count} {city.count === 1 ? "корт" : city.count < 5 ? "корта" : "кортов"}
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -291,7 +307,7 @@ export default function Index() {
                 Готов сыграть в падел?
               </h2>
               <p className="text-primary-foreground/80 text-lg mb-8 max-w-xl mx-auto">
-                Найди корт рядом с домом и начни играть уже сегодня. Это проще, чем кажется!
+                Найди корт рядом с домой и начни играть уже сегодня. Это проще, чем кажется!
               </p>
               <Link
                 to="/courts"

@@ -94,6 +94,12 @@ class ApiClient {
       throw new Error(error.message || `HTTP ${response.status}`);
     }
 
+    // Handle empty responses (204 No Content)
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return undefined as T;
+    }
+
     return response.json();
   }
 
@@ -129,6 +135,12 @@ class ApiClient {
     return this.request<Court>(`/courts/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCourt(id: string): Promise<void> {
+    return this.request<void>(`/courts/${id}`, {
+      method: 'DELETE',
     });
   }
 

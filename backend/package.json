@@ -14,7 +14,10 @@
     "clean:articles": "ts-node scripts/clean-articles.ts",
     "enrich:courts": "ts-node scripts/enrich-courts.ts",
     "enrich:courts:ai": "ts-node scripts/enrich-courts-perplexity.ts",
-    "enrich:court-types": "ts-node scripts/enrich-court-types.ts"
+    "enrich:court-types": "ts-node scripts/enrich-court-types.ts",
+    "scrape:step1": "ts-node scripts/scrape-courts-step1.ts",
+    "scrape:step2": "ts-node scripts/scrape-courts-step2.ts",
+    "scrape:full": "npm run scrape:step1 && npm run scrape:step2 && npm run enrich:courts:ai"
   },
   "keywords": [],
   "author": "",

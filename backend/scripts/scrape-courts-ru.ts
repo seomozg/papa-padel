@@ -51,8 +51,8 @@ async function search2GIS(query: string, lat: number, lng: number): Promise<any[
   }
   
   try {
-    // Добавляем fields для получения контактов и времени работы
-    const url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&location=${lng},${lat}&key=${GIS_API_KEY}&page_size=10&fields=items.contact_groups,items.working_hours,items.photos`;
+    // Добавляем radius и правильные fields
+    const url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&location=${lng},${lat}&radius=20000&key=${GIS_API_KEY}&page_size=10&fields=items.point,items.schedule`;
     
     const https = require('https');
     const response = await new Promise<any>((resolve, reject) => {
@@ -105,32 +105,25 @@ async function scrapeCourts() {
         const lat = item.point?.lat || 0;
         const lng = item.point?.lon || 0;
         
-        // Фото
-        let image = '/images/courts/placeholder.jpg';
-        if (item.photos?.[0]?.url) {
-          image = item.photos[0].url;
-        }
-        
-        // Телефон
-        let phone = null;
-        if (item.contact_groups) {
-          for (const group of item.contact_groups) {
-            for (const contact of group.contacts || []) {
-              if (contact.type === 'phone' && contact.value) {
-                phone = contact.value;
-                break;
-              }
-            }
-            if (phone) break;
-          }
-        }
-        
-        // Время работы
+        // Время работы из schedule (формат 2ГИС)
         let workingHours = null;
-        if (item.working_hours) {
-          const hours = item.working_hours;
-          if (hours.text) {
-            workingHours = hours.text;
+        if (item.schedule) {
+          const schedule = item.schedule;
+          const days = [];
+          const dayMap: Record<string, string> = {
+            'Mon': 'Пн', 'Tue': 'Вт', 'Wed': 'Ср', 'Thu': 'Чт',
+            'Fri': 'Пт', 'Sat': 'Сб', 'Sun': 'Вс'
+          };
+          
+          for (const [day, data] of Object.entries(schedule)) {
+            if (dayMap[day] && (data as any).working_hours) {
+              const hours = (data as any).working_hours.map((h: any) => `${h.from}-${h.to}`).join(', ');
+              days.push(`${dayMap[day]}: ${hours}`);
+            }
+          }
+          
+          if (days.length > 0) {
+            workingHours = days.join('; ');
           }
         }
         
@@ -144,19 +137,19 @@ async function scrapeCourts() {
               coordinates: { lat, lng },
               type: 'mixed',
               amenities: ['Парковка', 'Душевые'],
-              phone,
+              phone: null,
               workingHours,
               description: `Падел-корт в городе ${city.name}`,
               prices: [
                 { time: '09:00 – 18:00', weekday: 1500, weekend: 2000 },
                 { time: '18:00 – 23:00', weekday: 2500, weekend: 3000 },
               ],
-              image,
+              image: '/images/courts/placeholder.jpg',
               source: '2gis',
               sourceUrl: `https://2gis.ru/item/${item.id}`,
             },
           });
-          console.log(`    ✅ ${name} (тел: ${phone || 'нет'}, часы: ${workingHours || 'нет'})`);
+          console.log(`    ✅ ${name} (коорд: ${lat.toFixed(4)}, ${lng.toFixed(4)}, часы: ${workingHours || 'нет'})`);
           added++;
         } catch (e) {}
         

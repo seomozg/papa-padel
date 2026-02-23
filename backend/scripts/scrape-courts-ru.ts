@@ -1,8 +1,6 @@
 import 'dotenv/config';
-import axios from 'axios';
 import { prisma } from '../src/config/database';
 
-const YANDEX_API_KEY = process.env.YANDEX_MAPS_API_KEY;
 const GIS_API_KEY = process.env.GIS_MAPS_API_KEY;
 
 // Города РФ с координатами
@@ -25,7 +23,7 @@ const CITIES = [
 ];
 
 // Поисковые запросы
-const SEARCH_QUERIES = ['падел', 'padel', 'падел теннис'];
+const SEARCH_QUERIES = ['падел', 'padel'];
 
 // Проверка, что это падел-корт
 function isPadelCourt(name: string): boolean {
@@ -45,32 +43,6 @@ function generateSlug(name: string, id: string): string {
   return `${baseSlug}-${id.substring(0, 8)}`;
 }
 
-// Поиск через Яндекс
-async function searchYandex(query: string, city: string): Promise<any[]> {
-  if (!YANDEX_API_KEY) {
-    console.log('  ⚠️ YANDEX_MAPS_API_KEY не найден');
-    return [];
-  }
-  
-  try {
-    const response = await axios.get('https://search-maps.yandex.ru/v1/', {
-      params: {
-        apikey: YANDEX_API_KEY,
-        text: `${query} ${city}`,
-        lang: 'ru_RU',
-        results: 50,
-      },
-      timeout: 15000,
-    });
-    
-    console.log(`  Яндекс: ${response.data.features?.length || 0} результатов`);
-    return response.data.features || [];
-  } catch (error: any) {
-    console.error(`  ❌ Яндекс ошибка: ${error.message}`);
-    return [];
-  }
-}
-
 // Поиск через 2ГИС
 async function search2GIS(query: string, lat: number, lng: number): Promise<any[]> {
   if (!GIS_API_KEY) {
@@ -79,18 +51,15 @@ async function search2GIS(query: string, lat: number, lng: number): Promise<any[
   }
   
   try {
-    // page_size должен быть от 1 до 10
-    const url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&location=${lng},${lat}&key=${GIS_API_KEY}&page_size=10`;
-    console.log(`  2ГИС URL: ${url}`);
+    // Добавляем fields для получения контактов и времени работы
+    const url = `https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(query)}&location=${lng},${lat}&key=${GIS_API_KEY}&page_size=10&fields=items.contact_groups,items.working_hours,items.photos`;
     
-    // Используем нативный https
     const https = require('https');
     const response = await new Promise<any>((resolve, reject) => {
       https.get(url, (res: any) => {
         let data = '';
         res.on('data', (chunk: string) => data += chunk);
         res.on('end', () => {
-          console.log(`  2ГИС response: ${data.substring(0, 200)}...`);
           try {
             resolve(JSON.parse(data));
           } catch (e) {
@@ -101,10 +70,7 @@ async function search2GIS(query: string, lat: number, lng: number): Promise<any[
     });
     
     const items = response.result?.items || [];
-    console.log(`  2ГИС: ${items.length} результатов (total: ${response.result?.total || 0})`);
-    if (items.length > 0) {
-      console.log(`    Пример: ${items[0].name}`);
-    }
+    console.log(`  2ГИС: ${items.length} результатов`);
     return items;
   } catch (error: any) {
     console.error(`  ❌ 2ГИС ошибка: ${error.message}`);
@@ -114,7 +80,7 @@ async function search2GIS(query: string, lat: number, lng: number): Promise<any[
 
 // Основная функция
 async function scrapeCourts() {
-  console.log('🔍 Парсинг падел-кортов через Яндекс и 2ГИС...\n');
+  console.log('🔍 Парсинг падел-кортов через 2ГИС...\n');
   
   const seenIds = new Set<string>();
   let added = 0;
@@ -123,49 +89,8 @@ async function scrapeCourts() {
     console.log(`📍 ${city.name}`);
     
     for (const query of SEARCH_QUERIES) {
-      // Яндекс
-      const yandexResults = await searchYandex(query, city.name);
-      for (const item of yandexResults) {
-        const id = `yandex-${item.properties?.id || Date.now()}`;
-        const name = item.properties?.name || '';
-        
-        if (seenIds.has(id)) continue;
-        if (!isPadelCourt(name)) continue;
-        
-        seenIds.add(id);
-        
-        const coords = item.geometry?.coordinates || [0, 0];
-        const address = item.properties?.description || `${city.name}, адрес не указан`;
-        
-        try {
-          await prisma.court.create({
-            data: {
-              slug: generateSlug(name, id),
-              name,
-              city: city.name,
-              address,
-              coordinates: { lat: coords[1], lng: coords[0] },
-              type: 'mixed',
-              amenities: ['Парковка', 'Душевые'],
-              phone: null,
-              workingHours: null,
-              description: `Падел-корт в городе ${city.name}`,
-              prices: [
-                { time: '09:00 – 18:00', weekday: 1500, weekend: 2000 },
-                { time: '18:00 – 23:00', weekday: 2500, weekend: 3000 },
-              ],
-              image: '/images/courts/placeholder.jpg',
-              source: 'yandex',
-              sourceUrl: `https://yandex.ru/maps/-/${item.properties?.id || ''}`,
-            },
-          });
-          console.log(`    ✅ ${name} (Яндекс)`);
-          added++;
-        } catch (e) {}
-      }
-      
-      // 2ГИС
       const gisResults = await search2GIS(query, city.lat, city.lng);
+      
       for (const item of gisResults) {
         const id = `gis-${item.id}`;
         const name = item.name || '';
@@ -175,9 +100,39 @@ async function scrapeCourts() {
         
         seenIds.add(id);
         
+        // Адрес
         const address = item.address_name || `${city.name}, адрес не указан`;
         const lat = item.point?.lat || 0;
         const lng = item.point?.lon || 0;
+        
+        // Фото
+        let image = '/images/courts/placeholder.jpg';
+        if (item.photos?.[0]?.url) {
+          image = item.photos[0].url;
+        }
+        
+        // Телефон
+        let phone = null;
+        if (item.contact_groups) {
+          for (const group of item.contact_groups) {
+            for (const contact of group.contacts || []) {
+              if (contact.type === 'phone' && contact.value) {
+                phone = contact.value;
+                break;
+              }
+            }
+            if (phone) break;
+          }
+        }
+        
+        // Время работы
+        let workingHours = null;
+        if (item.working_hours) {
+          const hours = item.working_hours;
+          if (hours.text) {
+            workingHours = hours.text;
+          }
+        }
         
         try {
           await prisma.court.create({
@@ -189,24 +144,26 @@ async function scrapeCourts() {
               coordinates: { lat, lng },
               type: 'mixed',
               amenities: ['Парковка', 'Душевые'],
-              phone: null,
-              workingHours: null,
+              phone,
+              workingHours,
               description: `Падел-корт в городе ${city.name}`,
               prices: [
                 { time: '09:00 – 18:00', weekday: 1500, weekend: 2000 },
                 { time: '18:00 – 23:00', weekday: 2500, weekend: 3000 },
               ],
-              image: '/images/courts/placeholder.jpg',
+              image,
               source: '2gis',
               sourceUrl: `https://2gis.ru/item/${item.id}`,
             },
           });
-          console.log(`    ✅ ${name} (2ГИС)`);
+          console.log(`    ✅ ${name} (тел: ${phone || 'нет'}, часы: ${workingHours || 'нет'})`);
           added++;
         } catch (e) {}
+        
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
 

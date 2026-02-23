@@ -22,7 +22,8 @@
     "clear:courts": "ts-node scripts/clear-courts-db.ts",
     "scrape:2gis": "ts-node scripts/scrape-courts-2gis.ts",
     "scrape:ru": "ts-node scripts/scrape-courts-ru.ts",
-    "enrich:perplexity": "ts-node scripts/enrich-courts-perplexity.ts"
+    "enrich:perplexity": "ts-node scripts/enrich-courts-perplexity.ts",
+    "enrich:photos": "ts-node scripts/enrich-courts-photos.ts"
   },
   "keywords": [],
   "author": "",

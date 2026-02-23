@@ -3,50 +3,46 @@ import axios from 'axios';
 import { prisma } from '../src/config/database';
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
-const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
-// Поиск информации о корте через Perplexity
-async function searchCourtInfo(courtName: string, city: string): Promise<any> {
+interface PerplexityResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
+
+async function enrichCourt(court: any): Promise<{ phone: string | null; image: string | null; description: string | null }> {
   if (!PERPLEXITY_API_KEY) {
-    throw new Error('PERPLEXITY_API_KEY не найден');
+    console.log('  ⚠️ PERPLEXITY_API_KEY не найден');
+    return { phone: null, image: null, description: null };
   }
 
   try {
-    const response = await axios.post(
-      PERPLEXITY_API_URL,
+    const prompt = `Найди информацию о падел-корт "${court.name}" в городе ${court.city}, Россия.
+Верни JSON с полями:
+- phone: телефон для связи (формат: +7 XXX XXX-XX-XX)
+- image: URL фото корта (если есть)
+- description: краткое описание (2-3 предложения)
+
+Если информации нет, верни null для этого поля.
+Верни ТОЛЬКО JSON без markdown.`;
+
+    const response = await axios.post<PerplexityResponse>(
+      'https://api.perplexity.ai/chat/completions',
       {
         model: 'sonar',
         messages: [
           {
             role: 'system',
-            content: `Ты помощник по поиску информации о падел-кортах в России. 
-Твоя задача - найти актуальную информацию о клубе и вернуть её в формате JSON.
-Если точной информации нет - используй типичные значения для региона.`,
+            content: 'Ты помощник, который ищет информацию о спортивных объектах. Возвращай только JSON.'
           },
           {
             role: 'user',
-            content: `Найди информацию о падел-клубе "${courtName}" в городе ${city}, Россия.
-
-Мне нужны следующие данные:
-1. prices - массив с ценами на аренду корта в рублях. Формат: [{ time: "время", weekday: цена_будни, weekend: цена_выходные }]
-   Типичные временные слоты: "07:00-12:00", "12:00-17:00", "17:00-23:00"
-2. amenities - массив удобств клуба. Возможные: "Парковка", "Душевые", "Прокат ракеток", "Кафе", "Инструктор", "Wi-Fi", "Магазин", "Раздевалка", "Сауна", "Бассейн"
-3. description - описание клуба (2-3 предложения на русском)
-4. courtsCount - количество кортов (число)
-5. type - тип корта: "indoor" (крытый), "outdoor" (открытый) или "mixed" (смешанный - есть и крытые и открытые корты)
-
-Верни ТОЛЬКО валидный JSON без markdown и объяснений:
-{
-  "prices": [...],
-  "amenities": [...],
-  "description": "...",
-  "courtsCount": число,
-  "type": "indoor|outdoor|mixed"
-}`,
-          },
+            content: prompt
+          }
         ],
-        max_tokens: 1000,
-        temperature: 0.2,
+        max_tokens: 500,
       },
       {
         headers: {
@@ -57,95 +53,71 @@ async function searchCourtInfo(courtName: string, city: string): Promise<any> {
       }
     );
 
-    const content = response.data.choices[0]?.message?.content || '{}';
-    console.log(`  📝 Ответ: ${content.substring(0, 200)}...`);
+    const content = response.data.choices[0]?.message?.content || '';
     
     // Парсим JSON из ответа
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const data = JSON.parse(jsonMatch[0]);
+      return {
+        phone: data.phone || null,
+        image: data.image || null,
+        description: data.description || null,
+      };
     }
     
-    return JSON.parse(content);
+    return { phone: null, image: null, description: null };
   } catch (error: any) {
     console.error(`  ❌ Ошибка Perplexity: ${error.message}`);
-    if (error.response?.data) {
-      console.error(`  📄 Детали: ${JSON.stringify(error.response.data)}`);
-    }
-    return null;
+    return { phone: null, image: null, description: null };
   }
 }
 
 async function main() {
-  console.log('🎾 Обогащение данных о кортах через Perplexity...\n');
-
-  // Получаем все корты
+  console.log('🔄 Обогащение данных кортов через Perplexity...\n');
+  
+  // Получаем корты без телефона
   const courts = await prisma.court.findMany({
-    select: { id: true, name: true, city: true },
+    where: {
+      OR: [
+        { phone: null },
+        { image: '/images/courts/placeholder.jpg' },
+      ]
+    },
+    take: 60, // Все корты
   });
-
-  console.log(`Найдено кортов: ${courts.length}\n`);
-
-  let enriched = 0;
-  let failed = 0;
-
+  
+  console.log(`Найдено ${courts.length} кортов для обогащения\n`);
+  
+  let updated = 0;
+  
   for (const court of courts) {
-    console.log(`\n📍 Обработка: ${court.name} (${court.city})`);
-
-    // Ищем информацию через Perplexity
-    console.log(`  🔍 Поиск информации...`);
-    const data = await searchCourtInfo(court.name, court.city);
-
-    if (!data) {
-      console.log(`  ❌ Не удалось получить данные`);
-      failed++;
-      continue;
-    }
-
-    // Обновляем корт
-    const updateData: any = {};
+    console.log(`📍 ${court.name} (${court.city})`);
     
-    if (data.prices && Array.isArray(data.prices) && data.prices.length > 0) {
-      updateData.prices = data.prices;
-    }
+    const data = await enrichCourt(court);
     
-    if (data.amenities && Array.isArray(data.amenities) && data.amenities.length > 0) {
-      updateData.amenities = data.amenities;
-    }
-    
-    if (data.description && typeof data.description === 'string') {
-      updateData.description = data.description;
-    }
-    
-    if (data.courtsCount && typeof data.courtsCount === 'number') {
-      updateData.courtsCount = data.courtsCount;
-    }
-
-    if (data.type && ['indoor', 'outdoor', 'mixed'].includes(data.type)) {
-      updateData.type = data.type;
-    }
-
-    if (Object.keys(updateData).length > 0) {
+    if (data.phone || data.image || data.description) {
       await prisma.court.update({
         where: { id: court.id },
-        data: updateData,
+        data: {
+          phone: data.phone,
+          image: data.image || court.image,
+          description: data.description || court.description,
+        },
       });
-      
-      console.log(`  ✅ Обновлено: ${Object.keys(updateData).join(', ')}`);
-      enriched++;
+      console.log(`  ✅ Обновлено: тел=${data.phone || 'нет'}, фото=${data.image ? 'да' : 'нет'}`);
+      updated++;
     } else {
-      console.log(`  ⚠️ Данные не найдены`);
-      failed++;
+      console.log(`  ⏭️ Данные не найдены`);
     }
-
-    // Задержка между запросами (чтобы не превысить лимит)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Пауза чтобы не превысить лимит API
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
-
+  
   console.log('\n' + '='.repeat(50));
-  console.log('📊 ИТОГИ:');
-  console.log(`  Обогащено: ${enriched}`);
-  console.log(`  Ошибок: ${failed}`);
+  console.log(`📊 ИТОГИ:`);
+  console.log(`  Обновлено: ${updated}`);
   console.log('='.repeat(50));
 }
 

@@ -6,17 +6,18 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - DATABASE_URL=file:/app/data/dev.db
+      - DATABASE_URL=file:/app/prisma/dev.db
       - JWT_SECRET=${JWT_SECRET:-your-secret-key}
       - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - REDIS_ENABLED=false
-    volumes:
-      - ./data:/app/data
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:3001
     ports:
       - "80:80"
     depends_on:

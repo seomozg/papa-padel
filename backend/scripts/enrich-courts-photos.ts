@@ -6,27 +6,42 @@ import * as path from 'path';
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
-async function searchPlace(court: any): Promise<string | null> {
-  if (!GOOGLE_PLACES_API_KEY) {
-    console.log('  ⚠️ GOOGLE_PLACES_API_KEY не найден');
-    return null;
-  }
+// Транслитерация
+function transliterate(text: string): string {
+  const map: Record<string, string> = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo',
+    'ж': 'zh', 'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm',
+    'н': 'n', 'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u',
+    'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'sch',
+    'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya',
+    ' ': '-', ',': '', '.': '', '(': '', ')': '', '"': '', "'": '',
+  };
+  
+  return text
+    .toLowerCase()
+    .split('')
+    .map(c => map[c] || c)
+    .join('')
+    .replace(/-+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .substring(0, 50);
+}
+
+async function searchCourt(court: any): Promise<string | null> {
+  if (!GOOGLE_PLACES_API_KEY) return null;
 
   try {
-    // Text Search API
     const query = `${court.name} ${court.city} padel`;
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`;
     
     const response = await axios.get(url, { timeout: 10000 });
     
     if (response.data.results && response.data.results.length > 0) {
-      const place = response.data.results[0];
-      return place.place_id;
+      return response.data.results[0].place_id;
     }
     
     return null;
-  } catch (error: any) {
-    console.error(`  ❌ Ошибка поиска: ${error.message}`);
+  } catch (error) {
     return null;
   }
 }
@@ -35,20 +50,17 @@ async function getPlacePhoto(placeId: string): Promise<string | null> {
   if (!GOOGLE_PLACES_API_KEY) return null;
 
   try {
-    // Place Details API с photos
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=photos&key=${GOOGLE_PLACES_API_KEY}`;
     
     const response = await axios.get(url, { timeout: 10000 });
     
     if (response.data.result?.photos && response.data.result.photos.length > 0) {
       const photo = response.data.result.photos[0];
-      const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${photo.photo_reference}&key=${GOOGLE_PLACES_API_KEY}`;
-      return photoUrl;
+      return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photoreference=${photo.photo_reference}&key=${GOOGLE_PLACES_API_KEY}`;
     }
     
     return null;
-  } catch (error: any) {
-    console.error(`  ❌ Ошибка фото: ${error.message}`);
+  } catch (error) {
     return null;
   }
 }
@@ -56,7 +68,6 @@ async function getPlacePhoto(placeId: string): Promise<string | null> {
 async function downloadImage(url: string, filename: string): Promise<string> {
   const imagesDir = path.join(__dirname, '../../frontend/public/images/courts');
   
-  // Создаём директорию если нет
   if (!fs.existsSync(imagesDir)) {
     fs.mkdirSync(imagesDir, { recursive: true });
   }
@@ -80,7 +91,7 @@ async function main() {
     where: {
       image: '/images/courts/placeholder.jpg',
     },
-    take: 30,
+    take: 60,
   });
   
   console.log(`Найдено ${courts.length} кортов без фото\n`);
@@ -90,7 +101,6 @@ async function main() {
   for (const court of courts) {
     console.log(`📍 ${court.name} (${court.city})`);
     
-    // Ищем place_id
     const placeId = await searchCourt(court);
     
     if (!placeId) {
@@ -99,12 +109,13 @@ async function main() {
       continue;
     }
     
-    // Получаем фото
     const photoUrl = await getPlacePhoto(placeId);
     
     if (photoUrl) {
       try {
-        const filename = `${court.slug}.jpg`;
+        // Используем транслитерацию для имени файла
+        const safeName = transliterate(court.name);
+        const filename = `${safeName}-${court.id.substring(0, 8)}.jpg`;
         const localPath = await downloadImage(photoUrl, filename);
         
         await prisma.court.update({
@@ -112,16 +123,15 @@ async function main() {
           data: { image: localPath },
         });
         
-        console.log(`  ✅ Фото сохранено: ${localPath}`);
+        console.log(`  ✅ Фото: ${localPath}`);
         updated++;
       } catch (error: any) {
-        console.log(`  ❌ Ошибка загрузки: ${error.message}`);
+        console.log(`  ❌ Ошибка: ${error.message}`);
       }
     } else {
       console.log(`  ⏭️ Фото нет`);
     }
     
-    // Пауза для API
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
@@ -129,26 +139,6 @@ async function main() {
   console.log(`📊 ИТОГИ:`);
   console.log(`  Обновлено: ${updated}`);
   console.log('='.repeat(50));
-}
-
-// Временная функция для поиска
-async function searchCourt(court: any): Promise<string | null> {
-  if (!GOOGLE_PLACES_API_KEY) return null;
-
-  try {
-    const query = `${court.name} ${court.city} padel`;
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`;
-    
-    const response = await axios.get(url, { timeout: 10000 });
-    
-    if (response.data.results && response.data.results.length > 0) {
-      return response.data.results[0].place_id;
-    }
-    
-    return null;
-  } catch (error) {
-    return null;
-  }
 }
 
 main()

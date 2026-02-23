@@ -17,7 +17,8 @@
     "enrich:court-types": "ts-node scripts/enrich-court-types.ts",
     "scrape:step1": "ts-node scripts/scrape-courts-step1.ts",
     "scrape:step2": "ts-node scripts/scrape-courts-step2.ts",
-    "scrape:full": "npm run scrape:step1 && npm run scrape:step2 && npm run enrich:courts:ai"
+    "scrape:full": "npm run scrape:step1 && npm run scrape:step2 && npm run enrich:courts:ai",
+    "cleanup:courts": "ts-node scripts/cleanup-courts.ts"
   },
   "keywords": [],
   "author": "",

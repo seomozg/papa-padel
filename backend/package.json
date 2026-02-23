@@ -23,7 +23,8 @@
     "scrape:2gis": "ts-node scripts/scrape-courts-2gis.ts",
     "scrape:ru": "ts-node scripts/scrape-courts-ru.ts",
     "enrich:perplexity": "ts-node scripts/enrich-courts-perplexity.ts",
-    "enrich:photos": "ts-node scripts/enrich-courts-photos.ts"
+    "enrich:photos": "ts-node scripts/enrich-courts-photos.ts",
+    "scrape:google": "ts-node scripts/scrape-google-places.ts"
   },
   "keywords": [],
   "author": "",

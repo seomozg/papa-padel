@@ -178,7 +178,7 @@ export default function Courts() {
 
           {/* City chips */}
           <div className="container mx-auto px-4 pb-4">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <div className="flex flex-wrap gap-2 pb-2">
               <button
                 onClick={() => setCity("")}
                 className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${

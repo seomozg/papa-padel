@@ -13,7 +13,7 @@ export default function Footer() {
                 <span className="text-primary-foreground font-display text-sm font-bold">P</span>
               </div>
               <span className="font-display font-bold text-lg">
-                Padel<span className="text-primary">Russia</span>
+                Papa<span className="text-primary">Padel</span>
               </span>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
@@ -68,7 +68,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">© 2025 PadelRussia. Все права защищены.</p>
+          <p className="text-xs text-muted-foreground">© 2026 PapaPadel. Все права защищены.</p>
           <p className="text-xs text-muted-foreground">Сделано с ❤️ для любителей падела</p>
         </div>
       </div>

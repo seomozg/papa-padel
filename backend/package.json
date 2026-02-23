@@ -18,7 +18,9 @@
     "scrape:step1": "ts-node scripts/scrape-courts-step1.ts",
     "scrape:step2": "ts-node scripts/scrape-courts-step2.ts",
     "scrape:full": "npm run scrape:step1 && npm run scrape:step2 && npm run enrich:courts:ai",
-    "cleanup:courts": "ts-node scripts/cleanup-courts.ts"
+    "cleanup:courts": "ts-node scripts/cleanup-courts.ts",
+    "clear:courts": "ts-node scripts/clear-courts-db.ts",
+    "scrape:2gis": "ts-node scripts/scrape-courts-2gis.ts"
   },
   "keywords": [],
   "author": "",

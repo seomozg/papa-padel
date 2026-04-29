@@ -87,7 +87,7 @@ async function translateWithDeepSeek(text: string, targetLang: string = 'ru'): P
 // Скачивание изображения
 async function downloadImage(url: string, filename: string): Promise<string | null> {
   try {
-    const imagesDir = path.join(process.cwd(), '..', 'frontend', 'public', 'images', 'news');
+    const imagesDir = path.join(process.cwd(), 'public', 'images', 'news');
     
     if (!fs.existsSync(imagesDir)) {
       fs.mkdirSync(imagesDir, { recursive: true });

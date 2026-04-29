@@ -11,18 +11,25 @@ services:
       - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - REDIS_ENABLED=false
+    volumes:
+      - db-data:/app/prisma
+      - images-data:/app/public/images
     restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=https://papa-padel.ru
+        - VITE_YANDEX_MAPS_API_KEY=34dbd6cf-1644-4d20-b774-b789a9613935
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - backend
+    volumes:
+      - images-data:/usr/share/nginx/html/images
     restart: unless-stopped
 
 volumes:
+  db-data:
+  images-data:
   data:

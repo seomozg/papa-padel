@@ -61,7 +61,7 @@ function generateSlug(name: string): string {
 // Скачивание изображения
 async function downloadImage(url: string, filename: string): Promise<string | null> {
   try {
-    const imagesDir = path.join(process.cwd(), '..', 'frontend', 'public', 'images', 'courts');
+    const imagesDir = path.join(process.cwd(), 'public', 'images', 'courts');
     
     if (!fs.existsSync(imagesDir)) {
       fs.mkdirSync(imagesDir, { recursive: true });

@@ -4,6 +4,7 @@ import { MapPin, Star, Heart, Phone, Clock, ArrowLeft, Navigation2, Check, Chevr
 import { api, Court } from "@/lib/api";
 import Footer from "@/components/Footer";
 import YandexMap from "@/components/YandexMap";
+import SEOHead from "@/components/SEOHead";
 
 const TYPE_LABELS: Record<string, string> = {
   indoor: "Крытый",
@@ -110,6 +111,7 @@ export default function CourtDetail() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title={court.name} description={`${court.name} — ${court.city}. ${court.description?.substring(0, 150)}`} />
       <div className="pt-16">
         {/* Hero image */}
         <div className="relative h-64 md:h-96 overflow-hidden">

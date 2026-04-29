@@ -3,6 +3,7 @@ import { Search, Tag, Loader2 } from "lucide-react";
 import { api, Article } from "@/lib/api";
 import NewsCard from "@/components/NewsCard";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 const CATEGORIES = ["Все", "Тренды", "Турниры", "Советы", "Начинающим", "Новости клубов"];
 
@@ -38,6 +39,7 @@ export default function News() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Новости падела" description="Статьи о падел-теннисе в России и мире." />
       <div className="pt-20">
         {/* Header */}
         <div className="bg-card border-b border-border">

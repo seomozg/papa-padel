@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Edit, Trash2, Eye, ArrowLeft, Loader2, Save, X } from "lucide-react";
 import { api, Court, Article } from "@/lib/api";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 type TabType = 'courts' | 'articles';
 
@@ -338,6 +339,7 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Админ-панель" description="Управление контентом PapaPadel — корты и статьи." />
       <div className="pt-20">
         <div className="container mx-auto px-4 py-8">
           {/* Header */}

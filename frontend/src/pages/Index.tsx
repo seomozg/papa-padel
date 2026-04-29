@@ -5,6 +5,7 @@ import { api, Court, Article } from "@/lib/api";
 import CourtCard from "@/components/CourtCard";
 import NewsCard from "@/components/NewsCard";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import heroPadel from "@/assets/hero-padel.jpg";
 
 const FEATURES = [
@@ -78,6 +79,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Падел-корты России" description={`${totalCourts} кортов в ${totalCities} городах. Найди свой падел-корт.`} />
       {/* Hero */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0">

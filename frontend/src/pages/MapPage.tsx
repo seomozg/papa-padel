@@ -3,6 +3,7 @@ import { MapPin, Loader2 } from "lucide-react";
 import { api, Court } from "@/lib/api";
 import YandexMap from "@/components/YandexMap";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 import { Link } from "react-router-dom";
 
 const CITY_COORDINATES: Record<string, [number, number]> = {
@@ -70,6 +71,7 @@ export default function MapPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Карта кортов" description="Интерактивная карта всех падел-клубов России." />
       <div className="pt-16">
         <div className="container mx-auto px-4 py-8">
           <h1 className="font-display font-bold text-3xl mb-2">Карта кортов</h1>

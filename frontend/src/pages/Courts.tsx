@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal, MapPin, X, Loader2 } from "lucide-react";
 import { api, Court } from "@/lib/api";
 import CourtCard from "@/components/CourtCard";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 const TYPES = [
   { value: "", label: "Все типы" },
@@ -76,6 +77,7 @@ export default function Courts() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title="Корты" description={`Поиск падел-кортов. ${courts.length} кортов в каталоге.`} />
       <div className="pt-20">
         {/* Header */}
         <div className="bg-card border-b border-border">

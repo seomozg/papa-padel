@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Calendar, Clock, Share2, Loader2 } from "lucide-react";
 import { api, Article } from "@/lib/api";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 const CATEGORY_COLORS: Record<string, string> = {
   "Тренды": "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -62,6 +63,7 @@ export default function ArticleDetail() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead title={article.title} description={article.excerpt?.substring(0, 150)} />
       <div className="pt-16">
         {/* Hero image */}
         <div className="relative h-64 md:h-96 overflow-hidden">
